@@ -1,0 +1,239 @@
+<?php
+session_start();
+include('database.php');
+
+// Function to generate a random token
+function generateToken() {
+    return bin2hex(random_bytes(32));
+}
+
+if (isset($_POST['submit'])) {
+    $username = htmlspecialchars($_POST['username']);
+    $password = htmlspecialchars($_POST['password']);
+    $remember = isset($_POST['remember']) ? true : false; // Check if "Remember Me" is checked
+
+    $stmt = $conn->prepare("SELECT * FROM Users WHERE username = :username");
+    $stmt->bindParam(':username', $username);
+    $stmt->execute();
+    $user = $stmt->fetch();
+
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['username'] = $username;
+
+        // Set cookie if "Remember Me" is checked
+        if ($remember) {
+            $token = generateToken();
+            $expiry = time() + (10 * 365 * 24 * 60 * 60); // 10 years expiry
+            setcookie('remember_me', $username . ':' . $token, $expiry, '/', '', true, true);
+
+            // Save the token to the database for future verification if necessary
+            $stmt = $conn->prepare("UPDATE Users SET remember_token = :token WHERE username = :username");
+            $stmt->bindParam(':token', $token);
+            $stmt->bindParam(':username', $username);
+            $stmt->execute();
+        }
+
+        header("Location: service.php");
+        exit();
+    } else {
+        $login_error = "Invalid Username or Password";
+    }
+}
+
+// Check if user is already logged in via cookie
+if (isset($_COOKIE['remember_me']) && !isset($_SESSION['username'])) {
+    list($username, $token) = explode(':', $_COOKIE['remember_me']);
+
+    // Verify the token against the database
+    $stmt = $conn->prepare("SELECT * FROM Users WHERE username = :username AND remember_token = :token");
+    $stmt->bindParam(':username', $username);
+    $stmt->bindParam(':token', $token);
+    $stmt->execute();
+    $user = $stmt->fetch();
+
+    if ($user) {
+        $_SESSION['username'] = $username;
+        header("Location: service.php");
+        exit();
+    } else {
+        // Invalid token, clear the cookie
+        setcookie('remember_me', '', time() - 3600, '/', '', true, true);
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <style>
+  body {
+  font-family: "Open Sans", sans-serif;
+  background-color: #f0f0f0;
+  color: #333333;
+  margin: 0;
+  padding: 0;
+}
+
+.w3-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-image: linear-gradient(135deg, #ffcccc 10%, #cc99ff 100%);
+}
+
+.box-form {
+  width: 80%;
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+}
+
+.box-form .left {
+  flex: 1 1 50%;
+  background-color: #ffcccc;
+  background-image: url('k.png'); 
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.box-form .left .overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(204, 153, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.box-form .left .overlay h1 {
+  font-size: 3rem;
+  font-weight: 900;
+  margin: 0;
+  color: #333333;
+  text-align: center;
+}
+
+.box-form .left .overlay p {
+  color: #333333;
+  text-align: center;
+}
+
+.box-form .right {
+  flex: 1 1 50%;
+  padding: 40px;
+}
+
+.box-form .right h5 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  color: #333333;
+}
+
+.box-form .right p {
+  font-size: 1rem;
+  color: #666666;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.box-form .right .inputs {
+  margin-top: 20px;
+}
+
+.box-form .right input[type="text"],
+.box-form .right input[type="password"] {
+  width: calc(100% - 20px);
+  padding: 15px;
+  margin-top: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+  background-color: #f9f9f9;
+}
+
+.box-form .right button {
+  width: 100%;
+  background-color: #cc99ff;
+  color: #ffffff;
+  padding: 15px 0;
+  border-radius: 50px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.box-form .right button:hover {
+  background-color: #ac73e6;
+}
+
+@media (max-width: 768px) {
+  .box-form {
+    width: 90%;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .box-form .left,
+  .box-form .right {
+    flex: 1 1 100%;
+    padding: 20px;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div class="w3-container">
+    <div class="box-form">
+      <div class="left w3-card">
+        <div class="overlay">
+          <h1>WELCOME TO KIKO CLINIC</h1>
+          <p>PetCare Perspectives</p>
+        </div>
+      </div>
+      <div class="right">
+        <form action="login.php" method="post">
+          <h5>Login</h5>
+          <?php if (isset($login_error)): ?>
+            <p style="color: red;"><?php echo $login_error; ?></p>
+          <?php endif; ?>
+          <p>Don't have an account? <a href="register.php">Register Your Account</a> it takes less than a minute</p>
+          <div class="inputs">
+            <input type="text" name="username" placeholder="Username" required>
+            <br><br>
+            <input type="password" name="password" placeholder="Password" required>
+          </div>
+          <br>
+          <label>
+            <input type="checkbox" name="remember"> Remember Me
+          </label>
+          <br><br>
+          <button type="submit" name="submit" class="w3-button w3-pink w3-hover-purple">Login</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
