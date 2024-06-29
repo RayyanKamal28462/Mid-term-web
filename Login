@@ -124,7 +124,7 @@ if (isset($_COOKIE['remember_me']) && !isset($_SESSION['username'])) {
 }
 
 .box-form .left .overlay h1 {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 900;
   margin: 0;
   color: #333333;
@@ -142,7 +142,7 @@ if (isset($_COOKIE['remember_me']) && !isset($_SESSION['username'])) {
 }
 
 .box-form .right h5 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   text-align: center;
   color: #333333;
@@ -200,8 +200,19 @@ if (isset($_COOKIE['remember_me']) && !isset($_SESSION['username'])) {
     flex: 1 1 100%;
     padding: 20px;
   }
-}
 
+  .box-form .left {
+    display: none;
+  }
+
+  .box-form .right {
+    padding: 20px;
+  }
+
+  .box-form .right h5 {
+    font-size: 1.5rem;
+  }
+}
   </style>
 </head>
 <body>
